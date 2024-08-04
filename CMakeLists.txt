@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(cutefish-texteditor LANGUAGES CXX)
+set(PROJECT_NAME cutefish-texteditor)
+project(${PROJECT_NAME} LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -22,7 +23,7 @@ set(PROJECT_SOURCES
         qml.qrc
 )
 
-add_executable(cutefish-texteditor
+add_executable(${PROJECT_NAME}
   ${PROJECT_SOURCES}
 )
 
@@ -32,3 +33,5 @@ target_link_libraries(cutefish-texteditor
   Qt5::Quick
   KF5::SyntaxHighlighting
   )
+
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION /usr/bin)

@@ -19,6 +19,7 @@ FishUI.Window {
 
         onNewPath: {
             _tabView.addTab(textEditorCompeont, { fileUrl: path })
+            console.log("On New Path")
         }
     }
 
@@ -39,8 +40,9 @@ FishUI.Window {
 
             onNewTabClicked: {
                 addTab()
+                console.log("onNewTabClicked")
             }
-
+            
             delegate: FishUI.TabButton {
                 id: _tabBtn
                 text: _tabView.contentModel.get(index).tabName
@@ -54,15 +56,18 @@ FishUI.Window {
                 checked: _tabView.currentIndex === index
 
                 ToolTip.visible: hovered
-                ToolTip.text: _tabView.contentModel.get(index).fileUrl
+                ToolTip.text: _tabView.contentModel.get(index).fileName
 
                 onClicked: {
                     _tabView.currentIndex = index
                     _tabView.currentItem.forceActiveFocus()
+
+                    console.log("onClicked")
                 }
 
                 onCloseClicked: {
                     _tabView.closeTab(index)
+                    console.log("onCloseClicked")
                 }
             }
         }
@@ -118,10 +123,14 @@ FishUI.Window {
 
     function addPath(path) {
         _tabView.addTab(textEditorCompeont, { fileUrl: path })
+        
+        console.log("addPath")
     }
 
     function addTab() {
         _tabView.addTab(textEditorCompeont, {})
+
+        console.log("addTab")
     }
 
     Component {
@@ -129,10 +138,12 @@ FishUI.Window {
 
         TextEditor {
             fileUrl: "file:///home/cutefish/桌面/winepath"
+            fileName: qsTr("New file")
         }
     }
 
     Component.onCompleted: {
         // addTab()
+        console.log("onCompleted")
     }
 }
