@@ -60,7 +60,7 @@
 #include <QQmlFileSelector>
 #include <QQuickTextDocument>
 #include <QTextCharFormat>
-#include <QTextCodec>
+#include <QStringDecoder>
 #include <QTextDocument>
 #include <QTextDocumentWriter>
 #include <QUrl>
@@ -153,8 +153,15 @@ void FileLoader::loadFile(const QUrl &url)
 
     if (file.open(QFile::ReadOnly)) {
         const auto array = file.readAll();
-        QTextCodec *codec = QTextDocumentWriter(url.toLocalFile()).codec();
-        emit this->fileReady(codec->toUnicode(array), url);
+        // In Qt6, QTextCodec is removed, use QStringDecoder instead
+        QStringDecoder decoder(QStringDecoder::Utf8);
+        QString text = decoder.decode(array);
+        if (decoder.hasError()) {
+            // Fallback to Latin1 if UTF-8 fails
+            QStringDecoder fallbackDecoder(QStringDecoder::Latin1);
+            text = fallbackDecoder.decode(array);
+        }
+        emit this->fileReady(text, url);
     }
 }
 

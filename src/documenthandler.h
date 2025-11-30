@@ -66,6 +66,7 @@ class QTextDocument;
 class QQuickTextDocument;
 QT_END_NAMESPACE
 
+
 namespace KSyntaxHighlighting
 {
 class Repository;
@@ -776,5 +777,8 @@ private:
 
     void refreshAllBlocks();
 };
+
+// Declare QQuickTextDocument as an opaque pointer for Qt6 compatibility
+Q_DECLARE_OPAQUE_POINTER(QQuickTextDocument*)
 
 #endif // DOCUMENTHANDLER_H

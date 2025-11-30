@@ -12,8 +12,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt5 COMPONENTS Core Quick REQUIRED)
-find_package(KF5SyntaxHighlighting)
+find_package(Qt6 COMPONENTS Core Quick REQUIRED)
+find_package(KF6SyntaxHighlighting REQUIRED)
 
 set(PROJECT_SOURCES
         src/main.cpp
@@ -29,9 +29,9 @@ add_executable(${PROJECT_NAME}
 
 target_link_libraries(cutefish-texteditor
   PRIVATE
-  Qt5::Core
-  Qt5::Quick
-  KF5::SyntaxHighlighting
+  Qt6::Core
+  Qt6::Quick
+  KF6::SyntaxHighlighting
   )
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION /usr/bin)
