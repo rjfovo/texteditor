@@ -1,8 +1,8 @@
-import QtQuick 2.15
-import QtQml 2.15
-import QtQuick.Window 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick 6.0
+import QtQml 6.0
+import QtQuick.Window 6.0
+import QtQuick.Controls 6.0
+import QtQuick.Layouts 6.0
 import FishUI 1.0 as FishUI
 import Cutefish.TextEditor 1.0
 
