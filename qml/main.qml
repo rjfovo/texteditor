@@ -3,7 +3,7 @@ import QtQuick.Window 6.0
 import QtQuick.Controls 6.0
 import QtQuick.Layouts 6.0
 import FishUI 1.0 as FishUI
-import Cutefish.TextEditor 1.0
+import cutefish.TextEditor 1.0
 
 FishUI.Window {
     id: root
