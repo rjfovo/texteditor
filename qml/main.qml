@@ -2,7 +2,6 @@ import QtQuick 6.0
 import QtQuick.Window 6.0
 import QtQuick.Controls 6.0
 import QtQuick.Layouts 6.0
-import QtQuick.Dialogs
 import FishUI 1.0 as FishUI
 import Cutefish.TextEditor 1.0
 
@@ -131,7 +130,7 @@ FishUI.Window {
                 }
                 ToolButton {
                     icon.source: "image://icontheme/document-open"
-                    onClicked: _openDialog.open()
+                    onClicked: root._openFileDialog()
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Open")
                     anchors.verticalCenter: parent.verticalCenter
@@ -346,7 +345,7 @@ FishUI.Window {
         MenuItem {
             text: qsTr("Open...")
             icon.source: "image://icontheme/document-open"
-            onTriggered: _openDialog.open()
+            onTriggered: root._openFileDialog()
         }
         MenuSeparator { }
         MenuItem {
@@ -546,7 +545,7 @@ FishUI.Window {
             text: qsTr("Save As")
             onTriggered: {
                 root._saveTargetItem = _tabView.contentModel.get(root._contextTabIndex)
-                _saveDialog.open()
+                root._saveFileDialog()
             }
         }
     }
@@ -554,10 +553,11 @@ FishUI.Window {
 
     // ===================== 对话框 =====================
 
-    FileDialog {
+    // 自定义 fishui 风格文件对话框（替换 Qt 原生 FileDialog）
+    FishFileDialog {
         id: _openDialog
-        title: qsTr("Open File")
-        fileMode: FileDialog.OpenFile
+        dialogTitle: qsTr("Open File")
+        saveMode: false
         nameFilters: [qsTr("Text files (*.txt)"),
                       qsTr("All files (*)"),
                       qsTr("Markdown (*.md *.markdown)"),
@@ -571,10 +571,10 @@ FishUI.Window {
         onAccepted: root.openPath(_openDialog.selectedFile)
     }
 
-    FileDialog {
+    FishFileDialog {
         id: _saveDialog
-        title: qsTr("Save File")
-        fileMode: FileDialog.SaveFile
+        dialogTitle: qsTr("Save File")
+        saveMode: true
         nameFilters: [qsTr("Text files (*.txt)"),
                       qsTr("All files (*)")]
 
@@ -776,7 +776,7 @@ FishUI.Window {
     }
     Shortcut {
         sequence: "Ctrl+O"
-        onActivated: _openDialog.open()
+        onActivated: root._openFileDialog()
     }
     Shortcut {
         sequence: "Ctrl+S"
@@ -837,6 +837,40 @@ FishUI.Window {
 
     // ===================== 核心函数 =====================
 
+    // 取 URL 的父目录（"file:///a/b.txt" → "file:///a"）
+    function _parentDirOf(urlStr) {
+        var s = String(urlStr)
+        var idx = s.lastIndexOf("/")
+        if (idx > 7)
+            return s.substring(0, idx)
+        return "file:///"
+    }
+
+    // 打开文件对话框（初始目录 = 当前文件所在目录）
+    function _openFileDialog() {
+        if (root.currentItem && String(root.currentItem.fileUrl).length > 0)
+            _openDialog.folder = root._parentDirOf(root.currentItem.fileUrl)
+        else
+            _openDialog.folder = "file:///"
+        _openDialog.open()
+    }
+
+    // 保存文件对话框（初始目录/文件名 = 当前待保存文件）
+    function _saveFileDialog() {
+        var item = root._saveTargetItem
+        if (item) {
+            var urlStr = String(item.fileUrl)
+            if (urlStr.length > 0) {
+                _saveDialog.folder = root._parentDirOf(urlStr)
+                _saveDialog.defaultFileName = item.fileName
+            } else {
+                _saveDialog.folder = "file:///"
+                _saveDialog.defaultFileName = item.tabTitle
+            }
+        }
+        _saveDialog.open()
+    }
+
     function addTab(properties) {
         var props = properties || {}
         // 新建空标签：分配"新建文本 N"编号（打开文件时不分配）
@@ -847,7 +881,7 @@ FishUI.Window {
         var item = _tabView.addTab(textEditorComponent, props)
         item.saveAsRequested.connect(function() {
             root._saveTargetItem = item
-            _saveDialog.open()
+            root._saveFileDialog()
         })
         return item
     }
@@ -948,7 +982,7 @@ FishUI.Window {
             } else {
                 // 无路径，需要弹另存为对话框
                 _saveTargetItem = item
-                _saveDialog.open()
+                root._saveFileDialog()
                 return
             }
         }
