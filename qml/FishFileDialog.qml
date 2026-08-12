@@ -480,7 +480,7 @@ Item {
                 ComboBox {
                     id: _filterCombo
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 28
+                    Layout.preferredHeight: 32
                     model: control.nameFilters
                     onActivated: {
                         // 解析 "(...)" 中的扩展名列表并应用到文件过滤
