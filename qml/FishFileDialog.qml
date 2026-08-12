@@ -40,8 +40,10 @@ Item {
     // 文件类型过滤器（"Text files (*.txt)" 形式）
     property var nameFilters: [qsTr("All files (*)")]
 
-    // 当前生效的文件扩展名过滤（由 _filterCombo 驱动）
+    // 当前生效的文件扩展名过滤（由文件类型下拉驱动）
     property var _activeFilters: ["*"]
+    // 当前选中的文件类型索引（nameFilters 下标）
+    property int _filterIndex: 0
 
     // ===================== 内部状态 =====================
     property int _selectedIndex: -1
@@ -340,9 +342,7 @@ Item {
                     source: "image://icontheme/view-refresh"
                     onClicked: {
                         var f = _folderModel.folder
-                        _folderModel.folder = ""
-                        Qt.callLater(function() { _folderModel.folder = f })
-                    }
+                        _folderModel.folder = ""                    }
                 }
             }
 
@@ -469,6 +469,7 @@ Item {
 
             // ---------- 文件类型过滤（位于文件名输入框下方）----------
             RowLayout {
+                id: _typeRow
                 Layout.fillWidth: true
                 spacing: FishUI.Units.smallSpacing
 
@@ -477,15 +478,21 @@ Item {
                     color: FishUI.Theme.textColor
                 }
 
-                ComboBox {
-                    id: _filterCombo
+                // 显示当前类型，点击弹出自定义下拉
+                // （fish-style ComboBox 的 T.Popup 在 FishUI.Window + 软件渲染下
+                //  打开后不渲染，改用覆盖层下拉，样式与对话框一致）
+                Button {
+                    id: _typeButton
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 200
                     Layout.preferredHeight: 32
-                    model: control.nameFilters
-                    onActivated: {
-                        // 解析 "(...)" 中的扩展名列表并应用到文件过滤
-                        var m = String(currentText).match(/\(([^)]+)\)/)
-                        control._activeFilters = m ? m[1].split(/\s+/) : ["*"]
+                    text: control.nameFilters.length > 0
+                          ? control.nameFilters[control._filterIndex] : ""
+                    onClicked: {
+                        if (_typeDropdown.visible)
+                            _typeDropdown.visible = false
+                        else
+                            _typeDropdown._show()
                     }
                 }
             }
@@ -511,5 +518,87 @@ Item {
             }
         }
     }
+
+    // ===================== 自定义文件类型下拉 =====================
+    // fish-style ComboBox 的 T.Popup 在 FishUI.Window + 软件渲染下打开后不渲染，
+    // 改用覆盖层下拉（与对话框同渲染机制），样式一致。
+    Item {
+        id: _typeDropdown
+        visible: false
+        z: 100
+        // 遮罩拦截点击（关闭下拉）
+        MouseArea {
+            anchors.fill: parent
+            z: 0
+        }
+
+        function _show() {
+            var p = _typeButton.mapToItem(control, 0, _typeButton.height + 4)
+            _typeDropdown.x = p.x
+            _typeDropdown.y = p.y
+            _typeDropdown.width = Math.max(_typeButton.width, 240)
+            _typeDropdown.height = Math.min(control.nameFilters.length, 8) * 34
+                                    + FishUI.Units.smallSpacing * 2 + 2
+            _typeDropdown.visible = true
+        }
+
+        // 背景
+        Rectangle {
+            anchors.fill: parent
+            radius: FishUI.Theme.smallRadius
+            color: FishUI.Theme.secondBackgroundColor
+            border.width: 1
+            border.color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.12)
+                                                : Qt.rgba(0, 0, 0, 0.1)
+            z: 1
+        }
+
+        // 选项列表
+        Column {
+            anchors.fill: parent
+            anchors.topMargin: FishUI.Units.smallSpacing
+            anchors.bottomMargin: FishUI.Units.smallSpacing
+            spacing: 1
+            z: 2
+
+            Repeater {
+                model: control.nameFilters
+
+                delegate: ItemDelegate {
+                    height: 32
+                    width: parent.width
+                    padding: 0
+                    leftPadding: FishUI.Units.smallSpacing
+                    highlighted: index === control._filterIndex
+
+                    background: Rectangle {
+                        radius: FishUI.Theme.smallRadius
+                        color: parent.highlighted ? FishUI.Theme.highlightColor
+                             : (parent.hovered ? (FishUI.Theme.darkMode
+                                                  ? Qt.rgba(255, 255, 255, 0.08)
+                                                  : Qt.rgba(0, 0, 0, 0.06))
+                                               : "transparent")
+                    }
+
+                    contentItem: Label {
+                        text: modelData
+                        verticalAlignment: Text.AlignVCenter
+                        color: parent.highlighted ? FishUI.Theme.highlightedTextColor
+                                                  : FishUI.Theme.textColor
+                    }
+
+                    onClicked: {
+                        control._filterIndex = index
+                        control._activeFilters = (function() {
+                            var m = String(modelData).match(/\\(([^)]+)\\)/)
+                            return m ? m[1].split(/\\s+/) : ["*"]
+                        })()
+                        _typeDropdown.visible = false
+                    }
+                }
+            }
+        }
+    }
+
 }
 }}
