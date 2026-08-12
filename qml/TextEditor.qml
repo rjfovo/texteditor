@@ -28,10 +28,10 @@ Item {
     // 标签栏文字（含未保存标记）
     property var tabName: tabTitle + (document.modified ? " *" : "")
 
-    // 标签图标：已保存用"文档+笔"图标（深灰），未保存用红色笔图标（提示需保存）
-    property string tabIcon: document.modified
-                             ? "qrc:/images/unsaved.svg"
-                             : "qrc:/images/saved.svg"
+    // 标签图标：系统自带的"保存"图标（磁盘），未保存/新建文件时着色红色，已保存默认色
+    property string tabIcon: "image://icontheme/document-save"
+    // 图标着色（未保存时红色，已保存不着色保留默认色）
+    property color tabIconColor: document.modified ? "#E23636" : "transparent"
     property bool showLineNumbers: true
     property bool enableHighlighting: true
     property bool findBarVisible: _findBar.visible
@@ -584,5 +584,6 @@ Item {
         interval: 2000
         onTriggered: _replaceStatusLabel.text = ""
     }
+
 }
 
