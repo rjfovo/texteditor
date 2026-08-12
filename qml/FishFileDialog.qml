@@ -27,6 +27,13 @@ Item {
     // 选中的文件（file:// 形式），接受后由调用方读取
     property url selectedFile
 
+    // 用户主目录（file:// 形式）
+    property url defaultHome: "file:///"
+    // 左侧快捷访问用户目录：[{name, path}]
+    property var userDirs: []
+    // 左侧挂载磁盘列表：[{name, path}]
+    property var mounts: []
+
     signal accepted()
     signal rejected()
 
@@ -48,7 +55,9 @@ Item {
     }
 
     function open() {
-        _folderModel.folder = control.folder
+        // 未显式指定目录时默认进入用户主目录
+        _folderModel.folder = String(control.folder).length > 7
+                              ? control.folder : control.defaultHome
         _fileNameInput.text = control.defaultFileName
         control.visible = true
         control._selectedIndex = -1
@@ -151,6 +160,144 @@ Item {
                     onClicked: control.reject()
                 }
             }
+
+            // ---------- 主体：左侧快捷栏 + 右侧内容 ----------
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: FishUI.Units.largeSpacing
+
+                // ---- 左侧快捷访问栏（用户目录 + 挂载磁盘）----
+                Rectangle {
+                    Layout.preferredWidth: 150
+                    Layout.fillHeight: true
+                    radius: FishUI.Theme.smallRadius
+                    color: FishUI.Theme.alternateBackgroundColor
+                    clip: true
+                    border.color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.1)
+                                                        : Qt.rgba(0, 0, 0, 0.08)
+                    border.width: 1
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.topMargin: FishUI.Units.smallSpacing
+                        anchors.bottomMargin: FishUI.Units.smallSpacing
+                        spacing: 1
+
+                        Label {
+                            text: qsTr("Folders")
+                            font.bold: true
+                            font.pixelSize: 11
+                            color: FishUI.Theme.disabledTextColor
+                            leftPadding: FishUI.Units.smallSpacing
+                            Layout.topMargin: FishUI.Units.smallSpacing
+                        }
+
+                        // 用户目录（主目录/文档/下载等）
+                        Repeater {
+                            model: control.userDirs
+
+                            delegate: ItemDelegate {
+                                width: 150 - FishUI.Units.largeSpacing
+                                height: 28
+                                padding: 0
+                                leftPadding: FishUI.Units.smallSpacing
+
+                                background: Rectangle {
+                                    radius: FishUI.Theme.smallRadius
+                                    color: parent.hovered ? (FishUI.Theme.darkMode
+                                                             ? Qt.rgba(255, 255, 255, 0.08)
+                                                             : Qt.rgba(0, 0, 0, 0.06))
+                                                          : "transparent"
+                                }
+
+                                onClicked: _folderModel.folder = Qt.resolvedUrl("file://" + modelData.path)
+
+                                contentItem: RowLayout {
+                                    spacing: FishUI.Units.smallSpacing
+                                    Image {
+                                        Layout.preferredWidth: 16
+                                        Layout.preferredHeight: 16
+                                        sourceSize: Qt.size(16, 16)
+                                        source: "image://icontheme/folder"
+                                        opacity: 0.85
+                                    }
+                                    Label {
+                                        text: modelData.name
+                                        Layout.fillWidth: true
+                                        elide: Text.ElideMiddle
+                                        color: FishUI.Theme.textColor
+                                    }
+                                }
+                            }
+                        }
+
+
+                        // 分隔线
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 1
+                            Layout.topMargin: FishUI.Units.smallSpacing
+                            Layout.bottomMargin: FishUI.Units.smallSpacing
+                            color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.1)
+                                                         : Qt.rgba(0, 0, 0, 0.08)
+                        }
+
+                        Label {
+                            text: qsTr("Devices")
+                            font.bold: true
+                            font.pixelSize: 11
+                            color: FishUI.Theme.disabledTextColor
+                            leftPadding: FishUI.Units.smallSpacing
+                        }
+
+                        // 挂载磁盘 / 分区
+                        Repeater {
+                            model: control.mounts
+
+                            delegate: ItemDelegate {
+                                width: 150 - FishUI.Units.largeSpacing
+                                height: 28
+                                padding: 0
+                                leftPadding: FishUI.Units.smallSpacing
+
+                                background: Rectangle {
+                                    radius: FishUI.Theme.smallRadius
+                                    color: parent.hovered ? (FishUI.Theme.darkMode
+                                                             ? Qt.rgba(255, 255, 255, 0.08)
+                                                             : Qt.rgba(0, 0, 0, 0.06))
+                                                          : "transparent"
+                                }
+
+                                onClicked: _folderModel.folder = Qt.resolvedUrl("file://" + modelData.path)
+
+                                contentItem: RowLayout {
+                                    spacing: FishUI.Units.smallSpacing
+                                    Image {
+                                        Layout.preferredWidth: 16
+                                        Layout.preferredHeight: 16
+                                        sourceSize: Qt.size(16, 16)
+                                        source: "image://icontheme/drive-harddisk"
+                                        opacity: 0.85
+                                    }
+                                    Label {
+                                        text: modelData.name
+                                        Layout.fillWidth: true
+                                        elide: Text.ElideMiddle
+                                        color: FishUI.Theme.textColor
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ---- 右侧内容 ----
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    spacing: FishUI.Units.smallSpacing
+
 
             // ---------- 路径栏 ----------
             RowLayout {
@@ -300,7 +447,7 @@ Item {
             }
 
 
-            // ---------- 文件名 / 文件类型 ----------
+            // ---------- 文件名输入 ----------
             RowLayout {
                 Layout.fillWidth: true
                 spacing: FishUI.Units.smallSpacing
@@ -318,10 +465,21 @@ Item {
                     placeholderText: qsTr("File name")
                     Keys.onReturnPressed: control.accept()
                 }
+            }
+
+            // ---------- 文件类型过滤（位于文件名输入框下方）----------
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: FishUI.Units.smallSpacing
+
+                Label {
+                    text: qsTr("File type:")
+                    color: FishUI.Theme.textColor
+                }
 
                 ComboBox {
                     id: _filterCombo
-                    Layout.preferredWidth: 170
+                    Layout.fillWidth: true
                     Layout.preferredHeight: 28
                     model: control.nameFilters
                     onActivated: {
@@ -331,7 +489,6 @@ Item {
                     }
                 }
             }
-
             // ---------- 按钮行 ----------
             RowLayout {
                 Layout.fillWidth: true
@@ -343,6 +500,9 @@ Item {
                     text: qsTr("Cancel")
                     onClicked: control.reject()
                 }
+
+                }
+            }
 
                 Button {
                     text: control.saveMode ? qsTr("Save") : qsTr("Open")

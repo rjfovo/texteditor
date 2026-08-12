@@ -558,6 +558,9 @@ FishUI.Window {
         id: _openDialog
         dialogTitle: qsTr("Open File")
         saveMode: false
+        defaultHome: "file://" + fileHelper.homePath
+        userDirs: fileHelper.standardPaths
+        mounts: fileHelper.mounts
         nameFilters: [qsTr("Text files (*.txt)"),
                       qsTr("All files (*)"),
                       qsTr("Markdown (*.md *.markdown)"),
@@ -575,6 +578,9 @@ FishUI.Window {
         id: _saveDialog
         dialogTitle: qsTr("Save File")
         saveMode: true
+        defaultHome: "file://" + fileHelper.homePath
+        userDirs: fileHelper.standardPaths
+        mounts: fileHelper.mounts
         nameFilters: [qsTr("Text files (*.txt)"),
                       qsTr("All files (*)")]
 
@@ -837,36 +843,19 @@ FishUI.Window {
 
     // ===================== 核心函数 =====================
 
-    // 取 URL 的父目录（"file:///a/b.txt" → "file:///a"）
-    function _parentDirOf(urlStr) {
-        var s = String(urlStr)
-        var idx = s.lastIndexOf("/")
-        if (idx > 7)
-            return s.substring(0, idx)
-        return "file:///"
-    }
-
-    // 打开文件对话框（初始目录 = 当前文件所在目录）
+    // 打开文件对话框（默认进入用户主目录）
     function _openFileDialog() {
-        if (root.currentItem && String(root.currentItem.fileUrl).length > 0)
-            _openDialog.folder = root._parentDirOf(root.currentItem.fileUrl)
-        else
-            _openDialog.folder = "file:///"
+        // 不显式设置 folder，FishFileDialog.open() 会回退到 defaultHome（主目录）
         _openDialog.open()
     }
 
-    // 保存文件对话框（初始目录/文件名 = 当前待保存文件）
+    // 保存文件对话框（默认进入用户主目录，预填当前文件名）
     function _saveFileDialog() {
         var item = root._saveTargetItem
         if (item) {
-            var urlStr = String(item.fileUrl)
-            if (urlStr.length > 0) {
-                _saveDialog.folder = root._parentDirOf(urlStr)
-                _saveDialog.defaultFileName = item.fileName
-            } else {
-                _saveDialog.folder = "file:///"
-                _saveDialog.defaultFileName = item.tabTitle
-            }
+            // 不显式设置 folder，FishFileDialog.open() 会回退到 defaultHome（主目录）
+            _saveDialog.defaultFileName = item.fileName.length > 0
+                                          ? item.fileName : item.tabTitle
         }
         _saveDialog.open()
     }
