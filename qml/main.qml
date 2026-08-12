@@ -603,6 +603,13 @@ FishUI.Window {
             anchors.fill: parent
             visible: false
             z: 10000
+            // 弹出时获得焦点：支持 Esc 关闭（= 取消）、Tab/Enter 操作按钮
+            focus: true
+
+            Keys.onEscapePressed: {
+                _dlg.visible = false
+                _dlg.cancelClicked()
+            }
 
             property int tabIndex: -1
 
@@ -623,6 +630,9 @@ FishUI.Window {
                 _dlg.rightBtnText = right
                 _dlg.cancelBtnText = cancel
                 _dlg.visible = true
+                // 焦点转移到对话框（默认聚焦"取消"按钮，Enter 安全取消，Esc 同取消）
+                _dlg.forceActiveFocus()
+                _cancelBtn.forceActiveFocus()
             }
 
             function hideDialog() {
@@ -633,9 +643,11 @@ FishUI.Window {
             Rectangle {
                 anchors.fill: parent
                 color: Qt.rgba(0, 0, 0, 0.35)
+                z: 0
 
                 MouseArea {
                     anchors.fill: parent
+                    z: 0
                 }
             }
 
@@ -646,6 +658,9 @@ FishUI.Window {
                 height: Math.max(190, _dlgColumn.implicitHeight + FishUI.Units.largeSpacing * 2)
                 radius: FishUI.Theme.windowRadius
                 color: FishUI.Theme.secondBackgroundColor
+                // 显式置于遮罩之上：软件渲染下同级兄弟项的 z 顺序偶尔错乱，
+                // 否则遮罩 MouseArea 会拦截对话框内所有点击（按钮点了没反应）
+                z: 1
                 border.width: 1
                 border.color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.12) : Qt.rgba(0, 0, 0, 0.1)
 
@@ -718,6 +733,7 @@ FishUI.Window {
 
                         // 取消按钮（不保存、保存、取消 顺序）
                         Button {
+                            id: _cancelBtn
                             text: _dlg.cancelBtnText
                             onClicked: {
                                 _dlg.visible = false
