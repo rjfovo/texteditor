@@ -497,14 +497,13 @@ Item {
                 Item { Layout.fillWidth: true }
 
                 Button {
+                    id: _cancelBtn
                     text: qsTr("Cancel")
                     onClicked: control.reject()
                 }
 
-                }
-            }
-
                 Button {
+                    id: _openBtn
                     text: control.saveMode ? qsTr("Save") : qsTr("Open")
                     highlighted: true
                     onClicked: control.accept()
@@ -513,4 +512,4 @@ Item {
         }
     }
 }
-
+}}
