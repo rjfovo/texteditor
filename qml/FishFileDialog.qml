@@ -5,44 +5,30 @@ import Qt.labs.folderlistmodel 2.15
 import FishUI 1.0 as FishUI
 
 // 自定义 fishui 风格文件选择对话框（替换 Qt 原生 FileDialog）
-// 打开 / 保存两种模式，风格与主窗口一致（居中覆盖层 + 遮罩）
 Item {
     id: control
     anchors.fill: parent
     visible: false
     z: 10000
-    // 弹出时获得焦点：Esc 关闭、Tab/Enter 操作
     focus: true
 
     Keys.onEscapePressed: control.reject()
 
     // ===================== 对外接口 =====================
     property string dialogTitle: qsTr("File")
-    // true = 保存模式, false = 打开模式
     property bool saveMode: false
-    // 初始目录（file:// 形式），打开前由调用方设置
     property url folder: "file:///"
-    // 保存模式的默认文件名
     property string defaultFileName: ""
-    // 选中的文件（file:// 形式），接受后由调用方读取
     property url selectedFile
-
-    // 用户主目录（file:// 形式）
     property url defaultHome: "file:///"
-    // 左侧快捷访问用户目录：[{name, path}]
     property var userDirs: []
-    // 左侧挂载磁盘列表：[{name, path}]
     property var mounts: []
 
-    signal accepted()
-    signal rejected()
+    signal accepted
+    signal rejected
 
-    // 文件类型过滤器（"Text files (*.txt)" 形式）
     property var nameFilters: [qsTr("All files (*)")]
-
-    // 当前生效的文件扩展名过滤（由文件类型下拉驱动）
     property var _activeFilters: ["*"]
-    // 当前选中的文件类型索引（nameFilters 下标）
     property int _filterIndex: 0
 
     // ===================== 内部状态 =====================
@@ -50,65 +36,58 @@ Item {
     property string _selectedName: ""
 
     function _localPath(urlStr) {
-        var s = String(urlStr)
+        var s = String(urlStr);
         if (s.indexOf("file://") === 0)
-            s = s.substring(7)
-        return decodeURIComponent(s)
-    }
-
-    function open() {
-        // 未显式指定目录时默认进入用户主目录
-        _folderModel.folder = String(control.folder).length > 7
-                              ? control.folder : control.defaultHome
-        _fileNameInput.text = control.defaultFileName
-        control.visible = true
-        control._selectedIndex = -1
-        control._selectedName = ""
-        // 延迟到对话框可见后再转移焦点（visible=true 当帧 forceActiveFocus
-        // 有时不生效，尤其在软件渲染/焦点仍在编辑区时）
-        Qt.callLater(function() {
-            control.forceActiveFocus()
-            _fileNameInput.forceActiveFocus()
-        })
-    }
-
-    function reject() {
-        control.visible = false
-        control.rejected()
+            s = s.substring(7);
+        return decodeURIComponent(s);
     }
 
     function _combineUrl(dirUrl, name) {
-        // 绝对路径（/ 开头）直接转 file://；否则拼接当前目录
         if (name.indexOf("/") === 0)
-            return "file://" + name
-        var d = String(dirUrl)
+            return "file://" + name;
+        var d = String(dirUrl);
         if (!d.endsWith("/"))
-            d += "/"
-        return d + name
+            d += "/";
+        return d + name;
+    }
+
+    function open() {
+        _folderModel.folder = String(control.folder).length > 7 ? control.folder : control.defaultHome;
+        _fileNameInput.text = control.defaultFileName;
+        control.visible = true;
+        control._selectedIndex = -1;
+        control._selectedName = "";
+        Qt.callLater(function () {
+            control.forceActiveFocus();
+            _fileNameInput.forceActiveFocus();
+        });
+    }
+
+    function reject() {
+        control.visible = false;
+        control.rejected();
     }
 
     function accept() {
-        var urlStr = ""
+        var urlStr = "";
         if (control.saveMode) {
-            // 保存模式：当前目录 + 输入的文件名
-            var name = _fileNameInput.text.trim()
+            var name = _fileNameInput.text.trim();
             if (name.length === 0)
-                return
-            urlStr = control._combineUrl(_folderModel.folder, name)
+                return;
+            urlStr = control._combineUrl(_folderModel.folder, name);
         } else {
-            // 打开模式：优先用列表选中项，否则用输入框内容
             if (control._selectedIndex >= 0)
-                urlStr = _folderModel.get(control._selectedIndex, "filePath")
+                urlStr = _folderModel.get(control._selectedIndex, "filePath");
             else {
-                var n2 = _fileNameInput.text.trim()
+                var n2 = _fileNameInput.text.trim();
                 if (n2.length === 0)
-                    return
-                urlStr = control._combineUrl(_folderModel.folder, n2)
+                    return;
+                urlStr = control._combineUrl(_folderModel.folder, n2);
             }
         }
-        control.selectedFile = urlStr
-        control.visible = false
-        control.accepted()
+        control.selectedFile = urlStr;
+        control.visible = false;
+        control.accepted();
     }
 
     // ===================== 遮罩 =====================
@@ -116,7 +95,6 @@ Item {
         anchors.fill: parent
         color: Qt.rgba(0, 0, 0, 0.35)
         z: 0
-
         MouseArea {
             anchors.fill: parent
             z: 0
@@ -156,8 +134,7 @@ Item {
                     Layout.preferredWidth: 24
                     Layout.preferredHeight: 24
                     size: 24
-                    source: FishUI.Theme.darkMode ? "qrc:/images/dark/close.svg"
-                                                  : "qrc:/images/light/close.svg"
+                    source: FishUI.Theme.darkMode ? "qrc:/images/dark/close.svg" : "qrc:/images/light/close.svg"
                     hoveredSource: "qrc:/images/dark/close.svg"
                     onClicked: control.reject()
                 }
@@ -169,15 +146,14 @@ Item {
                 Layout.fillHeight: true
                 spacing: FishUI.Units.largeSpacing
 
-                // ---- 左侧快捷访问栏（用户目录 + 挂载磁盘）----
+                // ---- 左侧快捷访问栏 ----
                 Rectangle {
                     Layout.preferredWidth: 150
                     Layout.fillHeight: true
                     radius: FishUI.Theme.smallRadius
                     color: FishUI.Theme.alternateBackgroundColor
                     clip: true
-                    border.color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.1)
-                                                        : Qt.rgba(0, 0, 0, 0.08)
+                    border.color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.1) : Qt.rgba(0, 0, 0, 0.08)
                     border.width: 1
 
                     ColumnLayout {
@@ -195,26 +171,18 @@ Item {
                             Layout.topMargin: FishUI.Units.smallSpacing
                         }
 
-                        // 用户目录（主目录/文档/下载等）
                         Repeater {
                             model: control.userDirs
-
                             delegate: ItemDelegate {
                                 width: 150 - FishUI.Units.largeSpacing
                                 height: 28
                                 padding: 0
                                 leftPadding: FishUI.Units.smallSpacing
-
                                 background: Rectangle {
                                     radius: FishUI.Theme.smallRadius
-                                    color: parent.hovered ? (FishUI.Theme.darkMode
-                                                             ? Qt.rgba(255, 255, 255, 0.08)
-                                                             : Qt.rgba(0, 0, 0, 0.06))
-                                                          : "transparent"
+                                    color: parent.hovered ? (FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(0, 0, 0, 0.06)) : "transparent"
                                 }
-
                                 onClicked: _folderModel.folder = Qt.resolvedUrl("file://" + modelData.path)
-
                                 contentItem: RowLayout {
                                     spacing: FishUI.Units.smallSpacing
                                     Image {
@@ -234,15 +202,12 @@ Item {
                             }
                         }
 
-
-                        // 分隔线
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 1
                             Layout.topMargin: FishUI.Units.smallSpacing
                             Layout.bottomMargin: FishUI.Units.smallSpacing
-                            color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.1)
-                                                         : Qt.rgba(0, 0, 0, 0.08)
+                            color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.1) : Qt.rgba(0, 0, 0, 0.08)
                         }
 
                         Label {
@@ -253,26 +218,18 @@ Item {
                             leftPadding: FishUI.Units.smallSpacing
                         }
 
-                        // 挂载磁盘 / 分区
                         Repeater {
                             model: control.mounts
-
                             delegate: ItemDelegate {
                                 width: 150 - FishUI.Units.largeSpacing
                                 height: 28
                                 padding: 0
                                 leftPadding: FishUI.Units.smallSpacing
-
                                 background: Rectangle {
                                     radius: FishUI.Theme.smallRadius
-                                    color: parent.hovered ? (FishUI.Theme.darkMode
-                                                             ? Qt.rgba(255, 255, 255, 0.08)
-                                                             : Qt.rgba(0, 0, 0, 0.06))
-                                                          : "transparent"
+                                    color: parent.hovered ? (FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(0, 0, 0, 0.06)) : "transparent"
                                 }
-
                                 onClicked: _folderModel.folder = Qt.resolvedUrl("file://" + modelData.path)
-
                                 contentItem: RowLayout {
                                     spacing: FishUI.Units.smallSpacing
                                     Image {
@@ -300,305 +257,272 @@ Item {
                     Layout.fillHeight: true
                     spacing: FishUI.Units.smallSpacing
 
+                    // 路径栏
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: FishUI.Units.smallSpacing
 
-            // ---------- 路径栏 ----------
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: FishUI.Units.smallSpacing
+                        FishUI.RoundImageButton {
+                            size: 28
+                            iconMargins: 6
+                            source: "image://icontheme/go-up"
+                            onClicked: _folderModel.folder = _folderModel.parentFolder
+                        }
 
-                // 上一级
-                FishUI.RoundImageButton {
-                    size: 28
-                    iconMargins: 6
-                    source: "image://icontheme/go-up"
-                    onClicked: _folderModel.folder = _folderModel.parentFolder
-                }
-
-                // 当前路径
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 28
-                    radius: FishUI.Theme.smallRadius
-                    color: FishUI.Theme.alternateBackgroundColor
-                    border.color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.1)
-                                                        : Qt.rgba(0, 0, 0, 0.08)
-                    border.width: 1
-
-                    Label {
-                        anchors.fill: parent
-                        anchors.leftMargin: FishUI.Units.smallSpacing
-                        anchors.rightMargin: FishUI.Units.smallSpacing
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideMiddle
-                        text: _localPath(_folderModel.folder.toString())
-                        color: FishUI.Theme.textColor
-                    }
-                }
-
-                // 刷新
-                FishUI.RoundImageButton {
-                    size: 28
-                    iconMargins: 6
-                    source: "image://icontheme/view-refresh"
-                    onClicked: {
-                        var f = _folderModel.folder
-                        _folderModel.folder = ""                    }
-                }
-            }
-
-
-            // ---------- 文件列表 ----------
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                radius: FishUI.Theme.smallRadius
-                color: FishUI.Theme.alternateBackgroundColor
-                clip: true
-                border.color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.1)
-                                                    : Qt.rgba(0, 0, 0, 0.08)
-                border.width: 1
-
-                FolderListModel {
-                    id: _folderModel
-                    showDirs: true
-                    showFiles: true
-                    showDotAndDotDot: false
-                    showHidden: false
-                    sortField: FolderListModel.Name
-                    sortReversed: false
-                    nameFilters: control._activeFilters
-                }
-
-                ListView {
-                    id: _fileListView
-                    anchors.fill: parent
-                    anchors.margins: FishUI.Units.smallSpacing / 2
-                    model: _folderModel
-                    clip: true
-                    focus: true
-
-                    ScrollBar.vertical: ScrollBar { }
-
-                    delegate: ItemDelegate {
-                        width: _fileListView.width
-                        height: 32
-                        padding: 0
-                        leftPadding: FishUI.Units.smallSpacing
-
-                        highlighted: control._selectedIndex === index
-                        // 悬停/选中背景与 fishui 一致
-                        background: Rectangle {
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 28
                             radius: FishUI.Theme.smallRadius
-                            color: parent.highlighted ? FishUI.Theme.highlightColor
-                                 : (parent.hovered ? (FishUI.Theme.darkMode
-                                                      ? Qt.rgba(255, 255, 255, 0.08)
-                                                      : Qt.rgba(0, 0, 0, 0.06))
-                                                   : "transparent")
-                        }
-
-                        // 点击：目录进入，文件选中
-                        onClicked: {
-                            if (fileIsDir) {
-                                _folderModel.folder = filePath
-                                control._selectedIndex = -1
-                                control._selectedName = ""
-                            } else {
-                                control._selectedIndex = index
-                                control._selectedName = fileName
-                                _fileNameInput.text = fileName
-                                control.selectedFile = filePath
-                            }
-                        }
-
-                        // 双击：目录进入，文件直接接受
-                        onDoubleClicked: {
-                            if (fileIsDir) {
-                                _folderModel.folder = filePath
-                            } else {
-                                control.selectedFile = filePath
-                                control.visible = false
-                                control.accepted()
-                            }
-                        }
-
-                        contentItem: RowLayout {
-                            spacing: FishUI.Units.smallSpacing
-
-                            // 图标（目录/文件）
-                            Image {
-                                Layout.preferredWidth: 18
-                                Layout.preferredHeight: 18
-                                sourceSize: Qt.size(18, 18)
-                                source: fileIsDir ? "image://icontheme/folder"
-                                                  : "image://icontheme/text-x-generic"
-                                opacity: 0.9
-                            }
-
+                            color: FishUI.Theme.alternateBackgroundColor
+                            border.color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.1) : Qt.rgba(0, 0, 0, 0.08)
+                            border.width: 1
                             Label {
-                                text: fileName
-                                Layout.fillWidth: true
+                                anchors.fill: parent
+                                anchors.leftMargin: FishUI.Units.smallSpacing
+                                anchors.rightMargin: FishUI.Units.smallSpacing
+                                verticalAlignment: Text.AlignVCenter
                                 elide: Text.ElideMiddle
-                                color: parent.parent.highlighted ? FishUI.Theme.highlightedTextColor
-                                                                 : FishUI.Theme.textColor
+                                text: _localPath(_folderModel.folder.toString())
+                                color: FishUI.Theme.textColor
+                            }
+                        }
+
+                        FishUI.RoundImageButton {
+                            size: 28
+                            iconMargins: 6
+                            source: "image://icontheme/view-refresh"
+                            onClicked: {
+                                var f = _folderModel.folder;
+                                _folderModel.folder = "";
+                                Qt.callLater(function () {
+                                    _folderModel.folder = f;
+                                });
                             }
                         }
                     }
-                }
-            }
 
+                    // 文件列表
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: FishUI.Theme.smallRadius
+                        color: FishUI.Theme.alternateBackgroundColor
+                        clip: true
+                        border.color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.1) : Qt.rgba(0, 0, 0, 0.08)
+                        border.width: 1
 
-            // ---------- 文件名输入 ----------
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: FishUI.Units.smallSpacing
+                        FolderListModel {
+                            id: _folderModel
+                            showDirs: true
+                            showFiles: true
+                            showDotAndDotDot: false
+                            showHidden: false
+                            sortField: FolderListModel.Name
+                            sortReversed: false
+                            nameFilters: control._activeFilters
+                        }
 
-                Label {
-                    text: control.saveMode ? qsTr("Name:") : qsTr("File name:")
-                    color: FishUI.Theme.textColor
-                }
+                        ListView {
+                            id: _fileListView
+                            anchors.fill: parent
+                            anchors.margins: FishUI.Units.smallSpacing / 2
+                            model: _folderModel
+                            clip: true
+                            focus: true
+                            ScrollBar.vertical: ScrollBar {}
 
-                TextField {
-                    id: _fileNameInput
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 28
-                    selectByMouse: true
-                    placeholderText: qsTr("File name")
-                    Keys.onReturnPressed: control.accept()
-                }
-            }
-
-            // ---------- 文件类型过滤（位于文件名输入框下方）----------
-            RowLayout {
-                id: _typeRow
-                Layout.fillWidth: true
-                spacing: FishUI.Units.smallSpacing
-
-                Label {
-                    text: qsTr("File type:")
-                    color: FishUI.Theme.textColor
-                }
-
-                // 显示当前类型，点击弹出自定义下拉
-                // （fish-style ComboBox 的 T.Popup 在 FishUI.Window + 软件渲染下
-                //  打开后不渲染，改用覆盖层下拉，样式与对话框一致）
-                Button {
-                    id: _typeButton
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 200
-                    Layout.preferredHeight: 32
-                    text: control.nameFilters.length > 0
-                          ? control.nameFilters[control._filterIndex] : ""
-                    onClicked: {
-                        if (_typeDropdown.visible)
-                            _typeDropdown.visible = false
-                        else
-                            _typeDropdown._show()
+                            delegate: ItemDelegate {
+                                width: _fileListView.width
+                                height: 32
+                                padding: 0
+                                leftPadding: FishUI.Units.smallSpacing
+                                highlighted: control._selectedIndex === index
+                                background: Rectangle {
+                                    radius: FishUI.Theme.smallRadius
+                                    color: parent.highlighted ? FishUI.Theme.highlightColor : (parent.hovered ? (FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(0, 0, 0, 0.06)) : "transparent")
+                                }
+                                onClicked: {
+                                    if (fileIsDir) {
+                                        _folderModel.folder = filePath;
+                                        control._selectedIndex = -1;
+                                    } else {
+                                        control._selectedIndex = index;
+                                        _fileNameInput.text = fileName;
+                                        control.selectedFile = filePath;
+                                    }
+                                }
+                                onDoubleClicked: {
+                                    if (fileIsDir) {
+                                        _folderModel.folder = filePath;
+                                    } else {
+                                        control.selectedFile = filePath;
+                                        control.visible = false;
+                                        control.accepted();
+                                    }
+                                }
+                                contentItem: RowLayout {
+                                    spacing: FishUI.Units.smallSpacing
+                                    Image {
+                                        Layout.preferredWidth: 18
+                                        Layout.preferredHeight: 18
+                                        sourceSize: Qt.size(18, 18)
+                                        source: fileIsDir ? "image://icontheme/folder" : "image://icontheme/text-x-generic"
+                                        opacity: 0.9
+                                    }
+                                    Label {
+                                        text: fileName
+                                        Layout.fillWidth: true
+                                        elide: Text.ElideMiddle
+                                        color: parent.parent.highlighted ? FishUI.Theme.highlightedTextColor : FishUI.Theme.textColor
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-            }
-            // ---------- 按钮行 ----------
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: FishUI.Units.smallSpacing
 
-                Item { Layout.fillWidth: true }
+                    // 文件名输入
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: FishUI.Units.smallSpacing
 
-                Button {
-                    id: _cancelBtn
-                    text: qsTr("Cancel")
-                    onClicked: control.reject()
-                }
+                        Label {
+                            text: control.saveMode ? qsTr("Name:") : qsTr("File name:")
+                            color: FishUI.Theme.textColor
+                        }
 
-                Button {
-                    id: _openBtn
-                    text: control.saveMode ? qsTr("Save") : qsTr("Open")
-                    highlighted: true
-                    onClicked: control.accept()
+                        TextField {
+                            id: _fileNameInput
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 28
+                            selectByMouse: true
+                            placeholderText: qsTr("File name")
+                            Keys.onReturnPressed: control.accept()
+                        }
+                    }
+
+                    // 文件类型过滤
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: FishUI.Units.smallSpacing
+
+                        Label {
+                            text: qsTr("File type:")
+                            color: FishUI.Theme.textColor
+                        }
+
+                        Button {
+                            id: _typeButton
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 200
+                            Layout.preferredHeight: 32
+                            text: control.nameFilters.length > 0 ? control.nameFilters[control._filterIndex] : ""
+                            onClicked: {
+                                if (_typeDropdown.visible)
+                                    _typeDropdown.visible = false;
+                                else
+                                                    }
+                        }
+                    }
+
+                    // 按钮行
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: FishUI.Units.smallSpacing
+
+                        Item {
+                            Layout.fillWidth: true
+                        }
+
+                        Button {
+                            id: _cancelBtn
+                            text: qsTr("Cancel")
+                            onClicked: control.reject()
+                        }
+
+                        Button {
+                            id: _openBtn
+                            text: control.saveMode ? qsTr("Save") : qsTr("Open")
+                            highlighted: true
+                            onClicked: control.accept()
+                        }
+                    }
                 }
             }
         }
     }
 
     // ===================== 自定义文件类型下拉 =====================
-    // fish-style ComboBox 的 T.Popup 在 FishUI.Window + 软件渲染下打开后不渲染，
-    // 改用覆盖层下拉（与对话框同渲染机制），样式一致。
     Item {
         id: _typeDropdown
         visible: false
         z: 100
-        // 遮罩拦截点击（关闭下拉）
+        anchors.fill: parent
+
         MouseArea {
             anchors.fill: parent
             z: 0
+            onClicked: _typeDropdown.visible = false
         }
 
-        function _show() {
-            var p = _typeButton.mapToItem(control, 0, _typeButton.height + 4)
-            _typeDropdown.x = p.x
-            _typeDropdown.y = p.y
-            _typeDropdown.width = Math.max(_typeButton.width, 240)
-            _typeDropdown.height = Math.min(control.nameFilters.length, 8) * 34
-                                    + FishUI.Units.smallSpacing * 2 + 2
-            _typeDropdown.visible = true
-        }
-
-        // 背景
         Rectangle {
-            anchors.fill: parent
+            id: _ddPanel
+            property point _pos
+            x: _pos.x
+            y: _pos.y
             radius: FishUI.Theme.smallRadius
             color: FishUI.Theme.secondBackgroundColor
             border.width: 1
-            border.color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.12)
-                                                : Qt.rgba(0, 0, 0, 0.1)
+            border.color: FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.12) : Qt.rgba(0, 0, 0, 0.1)
             z: 1
-        }
 
-        // 选项列表
-        Column {
-            anchors.fill: parent
-            anchors.topMargin: FishUI.Units.smallSpacing
-            anchors.bottomMargin: FishUI.Units.smallSpacing
-            spacing: 1
-            z: 2
+            Column {
+                anchors.fill: parent
+                anchors.topMargin: FishUI.Units.smallSpacing
+                anchors.bottomMargin: FishUI.Units.smallSpacing
+                spacing: 1
 
-            Repeater {
-                model: control.nameFilters
+                Repeater {
+                    model: control.nameFilters
 
-                delegate: ItemDelegate {
-                    height: 32
-                    width: parent.width
-                    padding: 0
-                    leftPadding: FishUI.Units.smallSpacing
-                    highlighted: index === control._filterIndex
+                    delegate: ItemDelegate {
+                        height: 32
+                        width: parent.width
+                        padding: 0
+                        leftPadding: FishUI.Units.smallSpacing
+                        highlighted: index === control._filterIndex
 
-                    background: Rectangle {
-                        radius: FishUI.Theme.smallRadius
-                        color: parent.highlighted ? FishUI.Theme.highlightColor
-                             : (parent.hovered ? (FishUI.Theme.darkMode
-                                                  ? Qt.rgba(255, 255, 255, 0.08)
-                                                  : Qt.rgba(0, 0, 0, 0.06))
-                                               : "transparent")
-                    }
+                        background: Rectangle {
+                            radius: FishUI.Theme.smallRadius
+                            color: parent.highlighted ? FishUI.Theme.highlightColor : (parent.hovered ? (FishUI.Theme.darkMode ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(0, 0, 0, 0.06)) : "transparent")
+                        }
 
-                    contentItem: Label {
-                        text: modelData
-                        verticalAlignment: Text.AlignVCenter
-                        color: parent.highlighted ? FishUI.Theme.highlightedTextColor
-                                                  : FishUI.Theme.textColor
-                    }
+                        contentItem: Label {
+                            text: modelData
+                            verticalAlignment: Text.AlignVCenter
+                            color: parent.highlighted ? FishUI.Theme.highlightedTextColor : FishUI.Theme.textColor
+                        }
 
-                    onClicked: {
-                        control._filterIndex = index
-                        control._activeFilters = (function() {
-                            var m = String(modelData).match(/\\(([^)]+)\\)/)
-                            return m ? m[1].split(/\\s+/) : ["*"]
-                        })()
-                        _typeDropdown.visible = false
+                        onClicked: {
+                            control._filterIndex = index;
+                            control._activeFilters = (function () {
+                                    var m = String(modelData).match(/\(([^)]+)\)/);
+                                    return m ? m[1].split(/\s+/) : ["*"];
+                                })();
+                            _typeDropdown.visible = false;
+                        }
                     }
                 }
             }
         }
-    }
 
+        function _show() {
+            var g = _typeButton.mapToItem(null, 0, _typeButton.height + 4);
+            var c = control.mapToItem(null, 0, 0);
+            _ddPanel._pos = Qt.point(g.x - c.x, g.y - c.y);
+
+            _ddPanel.width = Math.max(_typeButton.width, 240);
+            _ddPanel.height = Math.min(control.nameFilters.length, 8) * 32 + FishUI.Units.smallSpacing * 2 + 2;
+            _typeDropdown.visible = true;
+        }
+    }
 }
-}}
