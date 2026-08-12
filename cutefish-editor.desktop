@@ -1,7 +1,7 @@
 [Desktop Entry]
 Categories=Utility;TextEditor;
 Comment=General text editor
-Exec=cutefish-editor %F
+Exec=cutefish-texteditor %F
 Icon=cutefish-editor
 Name=Cutefish Text Editor
 GenericName=Cutefish Text Editor

@@ -448,14 +448,14 @@ Alerts *DocumentHandler::getAlerts() const
     return this->m_alerts;
 }
 
-QQuickTextDocument *DocumentHandler::document() const
+QObject *DocumentHandler::document() const
 {
     return m_document;
 }
 
-void DocumentHandler::setDocument(QQuickTextDocument *document)
+void DocumentHandler::setDocument(QObject *document)
 {
-    this->m_document = document;
+    this->m_document = qobject_cast<QQuickTextDocument *>(document);
     emit documentChanged();
 
     if (this->textDocument()) {
@@ -732,17 +732,19 @@ void DocumentHandler::setFileUrl(const QUrl &url)
 QVariantMap DocumentHandler::fileInfo() const
 {
     const QFileInfo file(m_fileUrl.toLocalFile());
-    if(file.exists())
-    {
-        return QVariantMap();
-    }
-
-//    QVariantMap map = {
-//        {FMH::MODEL_NAME[FMH::MODEL_KEY::LABEL], file.fileName()},
-//        {FMH::MODEL_NAME[FMH::MODEL_KEY::NAME], file.fileName()}
-//    };
-
     QVariantMap map;
+
+    if (file.exists()) {
+        map["exists"] = true;
+        map["fileName"] = file.fileName();
+        map["filePath"] = file.absoluteFilePath();
+        map["size"] = static_cast<qulonglong>(file.size());
+        map["lastModified"] = file.lastModified();
+        map["isWritable"] = file.isWritable();
+    } else {
+        map["exists"] = false;
+        map["filePath"] = file.absoluteFilePath();
+    }
 
     return map;
 }
@@ -751,6 +753,9 @@ void DocumentHandler::load(const QUrl &url)
 {
     qDebug() << "TRYING TO LOAD FILE << " << url << url.isEmpty();
     if (!textDocument())
+        return;
+
+    if (m_fileUrl.isEmpty())
         return;
 
     if (m_fileUrl.isLocalFile() && !QFile(m_fileUrl.toLocalFile()).exists())
@@ -763,7 +768,9 @@ void DocumentHandler::load(const QUrl &url)
     }
 
     this->m_watcher->removePaths(this->m_watcher->files());
-    this->m_watcher->addPath(m_fileUrl.toLocalFile());
+    const QString localFile = m_fileUrl.toLocalFile();
+    if (!localFile.isEmpty() && QFile::exists(localFile))
+        this->m_watcher->addPath(localFile);
 
     emit this->loadFile(m_fileUrl);
 
@@ -811,6 +818,10 @@ void DocumentHandler::saveAs(const QUrl &url)
         return;
 
     m_fileUrl = url;
+    m_fileName = QFileInfo(url.toLocalFile()).fileName();
+    if (m_fileName.isEmpty())
+        m_fileName = QStringLiteral("untitled.txt");
+    emit fileNameChanged();
     emit fileUrlChanged();
 }
 
@@ -899,55 +910,49 @@ void DocumentHandler::find(const QString &query,const bool &forward)
         return;
     }
 
-    QTextDocument::FindFlags searchFlags;
-    QTextDocument::FindFlags newFlags = searchFlags;
+    QTextDocument::FindFlags newFlags;
 
     if (!forward)
     {
-        newFlags = searchFlags | QTextDocument::FindBackward;
+        newFlags |= QTextDocument::FindBackward;
     }
 
     if (m_findCaseSensitively)
     {
-        newFlags = newFlags | QTextDocument::FindCaseSensitively;
+        newFlags |= QTextDocument::FindCaseSensitively;
     }
 
     if (m_findWholeWords)
     {
-        newFlags = newFlags | QTextDocument::FindWholeWords;
+        newFlags |= QTextDocument::FindWholeWords;
     }
 
     QTextCursor start = this->textCursor();
 
     if(query != m_searchQuery )
     {
-        start.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
         m_searchQuery = query;
+        start.movePosition(forward ? QTextCursor::Start : QTextCursor::End, QTextCursor::MoveAnchor);
     }
 
-    if (!start.isNull() && !start.atEnd())
+    if (start.isNull())
+        return;
+
+    QTextCursor found = doc->find(m_searchQuery, start, newFlags);
+    if (found.isNull())
     {
-        QTextCursor found = doc->find(m_searchQuery, start, newFlags);
-        if (found.isNull())
-        {
-            if (!forward)
-                start.movePosition (QTextCursor::End, QTextCursor::MoveAnchor);
-            else
-                start.movePosition (QTextCursor::Start, QTextCursor::MoveAnchor);
+        // 未找到，从头/尾再查找一次（循环查找）
+        QTextCursor wrapStart = start;
+        wrapStart.movePosition(forward ? QTextCursor::Start : QTextCursor::End, QTextCursor::MoveAnchor);
+        found = doc->find(m_searchQuery, wrapStart, newFlags);
+    }
 
-            this->setCursorPosition(start.position());
-
-            found = doc->find(m_searchQuery, start, newFlags);
-        }
-
-        if (!found.isNull())
-        {
-            //              found.movePosition(QTextCursor::WordRight, QTextCursor::MoveAnchor);
-            setSelectionStart(found.selectionStart());
-            setSelectionEnd(found.selectionEnd());
-            setCursorPosition(found.position());
-            emit searchFound(selectionStart(), selectionEnd());
-        }
+    if (!found.isNull())
+    {
+        setSelectionStart(found.selectionStart());
+        setSelectionEnd(found.selectionEnd());
+        setCursorPosition(found.position());
+        emit searchFound(selectionStart(), selectionEnd());
     }
 }
 
@@ -982,6 +987,9 @@ void DocumentHandler::replaceAll(const QString &query, const QString &value)
         return;
     }
 
+    if (query.isEmpty())
+        return;
+
     QTextCursor newCursor(doc);
     newCursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
 
@@ -990,33 +998,32 @@ void DocumentHandler::replaceAll(const QString &query, const QString &value)
         return;
     }
 
-    QTextDocument::FindFlags searchFlags;
-    QTextDocument::FindFlags newFlags = searchFlags;
+    QTextDocument::FindFlags newFlags;
 
     if (m_findCaseSensitively)
     {
-        newFlags = searchFlags | QTextDocument::FindCaseSensitively;
+        newFlags |= QTextDocument::FindCaseSensitively;
     }
 
     if (m_findWholeWords)
     {
-        newFlags = searchFlags | QTextDocument::FindWholeWords;
+        newFlags |= QTextDocument::FindWholeWords;
     }
 
+    int replacedCount = 0;
     while (!newCursor.isNull() && !newCursor.atEnd()) {
         newCursor = doc->find(query, newCursor, newFlags);
 
         if (!newCursor.isNull()) {
-
-            //             newCursor.movePosition(QTextCursor::NoMove,
-            //                                    QTextCursor::KeepAnchor);
-
             newCursor.beginEditBlock();
             newCursor.insertText(value);
             newCursor.endEditBlock();
-
+            ++replacedCount;
         }
     }
+
+    if (replacedCount > 0)
+        emit documentChanged();
 }
 
 bool DocumentHandler::isFoldable(const int &line) const

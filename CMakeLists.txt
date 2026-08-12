@@ -12,7 +12,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 COMPONENTS Core Quick REQUIRED)
+find_package(Qt6 COMPONENTS Core Quick QuickControls2 REQUIRED)
 find_package(KF6SyntaxHighlighting REQUIRED)
 
 set(PROJECT_SOURCES
@@ -31,7 +31,12 @@ target_link_libraries(cutefish-texteditor
   PRIVATE
   Qt6::Core
   Qt6::Quick
+  Qt6::QuickControls2
   KF6::SyntaxHighlighting
   )
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION /usr/bin)
+
+# 安装桌面入口和应用图标
+install(FILES cutefish-editor.desktop DESTINATION /usr/share/applications)
+install(FILES images/cutefish-editor.svg DESTINATION /usr/share/icons/hicolor/scalable/apps)

@@ -239,7 +239,7 @@ class DocumentHandler : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(QQuickTextDocument *document READ document WRITE setDocument NOTIFY documentChanged)
+    Q_PROPERTY(QObject *document READ document WRITE setDocument NOTIFY documentChanged)
     Q_PROPERTY(int cursorPosition READ cursorPosition WRITE setCursorPosition NOTIFY cursorPositionChanged)
     Q_PROPERTY(int selectionStart READ selectionStart WRITE setSelectionStart NOTIFY selectionStartChanged)
     Q_PROPERTY(int selectionEnd READ selectionEnd WRITE setSelectionEnd NOTIFY selectionEndChanged)
@@ -299,13 +299,13 @@ public:
      * @brief document
      * @return
      */
-    QQuickTextDocument *document() const;
+    QObject *document() const;
 
     /**
      * @brief setDocument
      * @param document
      */
-    void setDocument(QQuickTextDocument *document);
+    void setDocument(QObject *document);
 
     /**
      * @brief cursorPosition
@@ -777,8 +777,5 @@ private:
 
     void refreshAllBlocks();
 };
-
-// Declare QQuickTextDocument as an opaque pointer for Qt6 compatibility
-Q_DECLARE_OPAQUE_POINTER(QQuickTextDocument*)
 
 #endif // DOCUMENTHANDLER_H

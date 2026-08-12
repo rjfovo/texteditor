@@ -2,9 +2,12 @@
     <qresource prefix="/">
         <file>qml/main.qml</file>
         <file>qml/TextEditor.qml</file>
+        <file>qml/fonts.js</file>
         <file>images/dark/add.svg</file>
         <file>images/dark/close.svg</file>
         <file>images/light/add.svg</file>
         <file>images/light/close.svg</file>
+        <file>images/unsaved.svg</file>
+        <file>images/saved.svg</file>
     </qresource>
 </RCC>
