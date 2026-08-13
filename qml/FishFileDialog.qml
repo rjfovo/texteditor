@@ -420,7 +420,8 @@ Item {
                                 if (_typeDropdown.visible)
                                     _typeDropdown.visible = false;
                                 else
-                                                    }
+                                    _typeDropdown._show();
+                            }
                         }
                     }
 

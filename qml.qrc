@@ -8,7 +8,6 @@
         <file>images/dark/close.svg</file>
         <file>images/light/add.svg</file>
         <file>images/light/close.svg</file>
-        <file>images/unsaved.svg</file>
-        <file>images/saved.svg</file>
+        <file>images/document-save-unsaved.svg</file>
     </qresource>
 </RCC>

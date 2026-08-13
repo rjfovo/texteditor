@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 未保存标签图标：基于系统 document-save 图标的形状（外轮廓+档位+标签），红色线框。
+     注：不能使用完整 document-save path 描边——其内部子路径在 14px 小尺寸下
+     线条过密渲染成实心块，故仅保留外轮廓/档位/标签三个关键子路径。 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path fill="none" stroke="#E23636" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"
+    transform="translate(1,1)"
+    d="M 3 2.9980469 L 3 19 L 19 19 L 19 7 L 15.707031 2.9980469 L 3 2.9980469 z M 8 4 L 11.900391 4 L 11.900391 8 L 8 8 L 8 4 z M 7 12 L 15 12 L 15 18 L 7 18 L 7 12 z"/>
+</svg>

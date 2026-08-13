@@ -28,10 +28,12 @@ Item {
     // 标签栏文字（含未保存标记）
     property var tabName: tabTitle + (document.modified ? " *" : "")
 
-    // 标签图标：系统自带的"保存"图标（磁盘），未保存/新建文件时着色红色，已保存默认色
-    property string tabIcon: "image://icontheme/document-save"
-    // 图标着色（未保存时红色，已保存不着色保留默认色）
-    property color tabIconColor: document.modified ? "#E23636" : "transparent"
+    // 标签图标：已保存用系统保存图标(磁盘💾)，未保存/新建文件用同款磁盘的红色线框图标(提示需保存)
+    // 注: 不能靠 ColorOverlay/ShaderEffect 着色(软件渲染失效), 故未保存直接用基于系统
+    // document-save 形状制作的红色线框 SVG(线条与系统图标完全一致, 仅颜色/描边不同)
+    property string tabIcon: document.modified
+                             ? "qrc:/images/document-save-unsaved.svg"
+                             : "image://icontheme/document-save"
     property bool showLineNumbers: true
     property bool enableHighlighting: true
     property bool findBarVisible: _findBar.visible

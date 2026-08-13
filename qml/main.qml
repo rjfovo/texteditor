@@ -231,8 +231,6 @@ FishUI.Window {
                     id: _tabBtn
                     text: _tabView.contentModel.get(index).tabName
                     iconSource: _tabView.contentModel.get(index).tabIcon
-                    // 未保存标签图标着色为红色，已保存不着色（默认色）
-                    iconColor: _tabView.contentModel.get(index).tabIconColor
                     implicitHeight: _tabbar.height
                     implicitWidth: Math.min(220, Math.max(120, _tabBtn.contentWidth))
 
